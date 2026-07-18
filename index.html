@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#0f172a">
+<link rel="manifest" href="manifest.json">
+<title>Meine Schulden</title>
+<style>
+:root{--bg:#07111f;--card:#111827;--card2:#0c1627;--line:#263449;--text:#f8fafc;--muted:#94a3b8;--blue:#3b82f6;--green:#22c55e;--yellow:#f59e0b;--red:#ef4444;--purple:#a78bfa}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(180deg,#06101d,#0b1220 45%);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;min-height:100vh}.app{max-width:780px;margin:auto;padding:16px 14px 94px}.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}.top h1{font-size:23px;margin:0}.sub{color:var(--muted);font-size:13px}.card{background:rgba(17,24,39,.97);border:1px solid var(--line);border-radius:18px;padding:15px;margin-bottom:14px;box-shadow:0 10px 30px rgba(0,0,0,.22)}.hero{background:linear-gradient(135deg,#111827,#172554)}.hero small{color:#bfdbfe}.hero strong{display:block;font-size:31px;margin-top:5px}.section-head{display:flex;align-items:center;justify-content:space-between;gap:10px}.section-head h2{font-size:18px;margin:0}.item{background:var(--card2);border:1px solid var(--line);border-radius:15px;padding:14px;margin-top:10px}.item.overdue{border-color:#7f1d1d}.item-head{display:flex;justify-content:space-between;gap:12px}.title{font-weight:800}.meta{color:var(--muted);font-size:12px;margin-top:4px}.value{font-size:18px;font-weight:800;text-align:right}.progress{height:11px;background:#1f2937;border-radius:999px;overflow:hidden;margin:12px 0 7px}.progress span{height:100%;display:block;background:linear-gradient(90deg,#22c55e,#4ade80)}.progress-labels{display:flex;justify-content:space-between;color:var(--muted);font-size:12px}.pill{display:inline-block;border-radius:999px;padding:3px 8px;font-size:11px;font-weight:800;margin-top:6px}.pill.open{background:#422006;color:#fde68a}.pill.paid{background:#12351f;color:#bbf7d0}.pill.overdue{background:#451a1a;color:#fecaca}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.actions button{flex:1;min-width:110px}.btn{border:0;border-radius:12px;padding:11px 13px;font-size:14px;font-weight:800;cursor:pointer}.primary{background:var(--blue);color:white}.secondary{background:#25344a;color:white}.success{background:#12351f;color:#bbf7d0}.danger{background:#451a1a;color:#fecaca}.ghost{background:transparent;color:#cbd5e1;border:1px solid var(--line)}label{display:block;color:#d1d5db;font-size:13px;margin:10px 0 5px}input,select,textarea{width:100%;background:#091322;color:white;border:1px solid #2b3a50;border-radius:12px;padding:12px;font-size:16px;outline:none}textarea{min-height:72px;resize:vertical}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.summary-row{display:flex;justify-content:space-between;gap:12px;border-top:1px solid var(--line);margin-top:14px;padding-top:14px;font-size:18px;font-weight:900}.empty{text-align:center;color:var(--muted);padding:28px 8px}.hidden{display:none!important}.payment-row{display:grid;grid-template-columns:92px 1fr auto;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid #1f2937}.payment-row:last-child{border-bottom:0}.footer{position:fixed;left:0;right:0;bottom:0;background:rgba(5,13,25,.97);border-top:1px solid var(--line);padding:8px}.footer-inner{max-width:780px;margin:auto;display:flex;gap:8px}.footer button{flex:1;background:#172338;color:white}.footer button.active{background:var(--blue)}dialog{border:1px solid var(--line);background:#0b1220;color:white;border-radius:18px;width:min(720px,calc(100% - 24px));padding:0;box-shadow:0 30px 80px rgba(0,0,0,.55)}dialog::backdrop{background:rgba(0,0,0,.68)}.modal{padding:16px}.modal-head{display:flex;justify-content:space-between;align-items:center;gap:10px}.modal-head h2{margin:0;font-size:19px}.close{background:transparent;color:#cbd5e1;border:0;font-size:25px}.tiny{font-size:11px;color:var(--muted)}.checkline{display:flex;align-items:center;gap:10px;margin-top:12px}.checkline input{width:22px;height:22px;accent-color:var(--green)}.paid-item{opacity:.72}.paid-item .title{text-decoration:line-through}@media(max-width:480px){.grid{grid-template-columns:1fr}.hero strong{font-size:27px}.payment-row{grid-template-columns:82px 1fr auto}.item-head{align-items:flex-start}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top"><div><h1>Meine Schulden</h1><div class="sub">Lokal auf diesem Handy gespeichert</div></div><button id="installBtn" class="btn secondary hidden">Installieren</button></div>
+
+  <section id="overviewPage">
+    <div class="card hero"><small>Aktuelle Gesamtrestschuld</small><strong id="overviewTotal">0,00 €</strong><div class="sub" id="overviewPaidText">0,00 € von 0,00 € bezahlt</div></div>
+    <div class="card">
+      <div class="section-head"><h2>Alle Schulden</h2><button class="btn primary" onclick="openDebtDialog()">+ Schuld</button></div>
+      <div id="debtOverviewList"></div>
+      <div class="summary-row"><span>Gesamtsumme aller Schulden</span><span id="bottomDebtTotal">0,00 €</span></div>
+    </div>
+  </section>
+
+  <section id="monthPage" class="hidden">
+    <div class="card hero"><small id="monthHeroLabel">Offen im aktuellen Monat</small><strong id="monthOpenHero">0,00 €</strong><div class="sub" id="monthPaidHero">Diesen Monat bezahlt: 0,00 €</div></div>
+    <div class="card">
+      <div class="section-head"><div><h2 id="monthTitle">Offene Zahlungen</h2><div class="sub">Monatlich wiederkehrend – wahlweise mit oder ohne Gesamtschuld</div></div><button class="btn primary" onclick="openMonthlyDialog()">+ Monatszahlung</button></div>
+      <div id="monthOpenList"></div>
+      <div class="summary-row"><span>Offene Gesamtsumme im Monat</span><span id="bottomMonthTotal">0,00 €</span></div>
+    </div>
+    <div class="card">
+      <div class="section-head"><h2 id="paymentsTitle">Bezahlte Zahlungen</h2><span id="monthPaymentSum" class="value" style="color:var(--green)">0,00 €</span></div>
+      <div id="monthPaymentList"></div>
+    </div>
+  </section>
+</div>
+
+<div class="footer"><div class="footer-inner"><button class="btn active" data-page="overviewPage">Gesamtschulden</button><button class="btn" data-page="monthPage">Aktueller Monat</button></div></div>
+
+<dialog id="debtDialog"><div class="modal"><div class="modal-head"><h2>Schuld anlegen / bearbeiten</h2><button class="close" onclick="debtDialog.close()">×</button></div>
+<form id="debtForm"><input type="hidden" id="editId">
+<label>Gläubiger</label><input id="creditor" required placeholder="z. B. Bank, Finanzamt, Privatperson">
+<label>Ursprüngliche Gesamtschuld (€)</label><input id="amount" type="number" min="0.01" step="0.01" inputmode="decimal" required>
+<div class="grid"><div><label>Monatlich fälliger Betrag (€)</label><input id="monthlyAmount" type="number" min="0" step="0.01" inputmode="decimal" required></div><div><label>Zahlungstag im Monat</label><input id="dueDay" type="number" min="1" max="31" inputmode="numeric" required></div></div>
+<label>Notiz</label><textarea id="note" placeholder="z. B. Aktenzeichen oder Ratenvereinbarung"></textarea>
+<button class="btn primary" style="width:100%;margin-top:14px" type="submit">Speichern</button>
+</form></div></dialog>
+
+<dialog id="paymentDialog"><div class="modal"><div class="modal-head"><h2>Zahlung erfassen</h2><button class="close" onclick="paymentDialog.close()">×</button></div>
+<form id="paymentForm"><input type="hidden" id="paymentDebtId"><label>Schuld</label><input id="paymentDebtName" readonly>
+<div class="grid"><div><label>Zahlungsdatum</label><input id="paymentDate" type="date" required></div><div><label>Betrag (€)</label><input id="paymentAmount" type="number" min="0.01" step="0.01" inputmode="decimal" required></div></div>
+<label>Notiz</label><input id="paymentNote" placeholder="z. B. Rate Juli">
+<div class="tiny" style="margin-top:8px">Die Zahlung wird automatisch von der Restschuld und vom offenen Monatsbetrag abgezogen.</div>
+<button class="btn success" style="width:100%;margin-top:14px" type="submit">Zahlung verbuchen</button>
+</form></div></dialog>
+
+<dialog id="monthlyDialog"><div class="modal"><div class="modal-head"><h2>Offene Monatszahlung</h2><button class="close" onclick="monthlyDialog.close()">×</button></div>
+<form id="monthlyForm"><input type="hidden" id="monthlyEditId">
+<label>Bezeichnung</label><input id="monthlyTitleInput" required placeholder="z. B. Rate Bank oder Rechnung Strom">
+<label>Art der monatlichen Zahlung</label>
+<label class="checkline"><input type="radio" name="monthlyType" id="monthlyTypeStandalone" value="standalone" checked><strong>Ohne Gesamtschuld</strong></label>
+<div class="tiny">Die Zahlung wird jeden Monat neu angelegt, aber keiner Gesamtschuld zugeordnet.</div>
+<label class="checkline"><input type="radio" name="monthlyType" id="monthlyTypeDebt" value="debt"><strong>Mit Gesamtschuld</strong></label>
+<div class="tiny">Die Zahlung wird jeden Monat neu angelegt und beim Abhaken von der ausgewählten Gesamtschuld abgezogen.</div>
+<div id="monthlyDebtWrap" class="hidden">
+<label>Gesamtschuld auswählen</label>
+<select id="monthlyDebtId"></select>
+<div class="tiny">Hier werden nur bereits in der Gesamtschuldenübersicht angelegte Schulden angezeigt.</div>
+</div>
+<div class="grid"><div><label>Betrag (€)</label><input id="monthlyPaymentAmount" type="number" min="0.01" step="0.01" inputmode="decimal" required></div><div><label>Zahlungstermin</label><input id="monthlyDueDate" type="date" required></div></div>
+<label>Notiz</label><input id="monthlyNote" placeholder="z. B. Rate Juli oder Rechnungsnummer">
+<input id="monthlyRecurring" type="hidden" value="1"><div class="tiny" style="margin-top:10px">Diese Zahlung wird automatisch jeden Monat mit demselben Betrag und Zahlungstag übernommen.</div>
+<button class="btn primary" style="width:100%;margin-top:14px" type="submit">Offene Zahlung speichern</button>
+</form></div></dialog>
+
+<script>
+const KEY='offene_zahlungen_v1',MONTHLY_KEY='monatliche_zahlungen_v1';
+const $=id=>document.getElementById(id);
+const money=n=>new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(Number(n)||0);
+const today=()=>new Date().toISOString().slice(0,10);
+const currentMonth=()=>today().slice(0,7);
+const monthName=m=>new Date(m+'-01T00:00:00').toLocaleDateString('de-DE',{month:'long',year:'numeric'});
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+let debts=[],monthlyItems=[];
+try{debts=JSON.parse(localStorage.getItem(KEY)||'[]');if(!Array.isArray(debts))debts=[]}catch{debts=[]}
+try{monthlyItems=JSON.parse(localStorage.getItem(MONTHLY_KEY)||'[]');if(!Array.isArray(monthlyItems))monthlyItems=[]}catch{monthlyItems=[]}
+function migrate(d){d.paymentRecords=Array.isArray(d.paymentRecords)?d.paymentRecords:[];d.amount=Number(d.amount)||0;d.monthlyAmount=Number(d.monthlyAmount)||0;d.dueDay=Number(d.dueDay)||1;d.creditor=d.creditor||'Ohne Gläubiger';return d}
+debts=debts.map(migrate);
+monthlyItems=monthlyItems.map(x=>({...x,amount:Number(x.amount)||0,paid:Boolean(x.paid),recurring:Boolean(x.recurring),recurringId:x.recurringId||''}));
+function monthDueDate(month,day){const [y,m]=month.split('-').map(Number);const last=new Date(y,m,0).getDate();return month+'-'+String(Math.min(Math.max(Number(day)||1,1),last)).padStart(2,'0')}
+function ensureRecurringCurrentMonth(){const m=currentMonth();const templates=new Map();monthlyItems.filter(x=>x.recurring).sort((a,b)=>(a.created||0)-(b.created||0)).forEach(x=>{const rid=x.recurringId||x.id;templates.set(rid,x)});for(const [rid,t] of templates){if(monthlyItems.some(x=>(x.dueDate||'').slice(0,7)===m&&(x.recurringId||x.id)===rid))continue;const day=(t.dueDate||'').slice(8,10)||'01';monthlyItems.push({...t,id:crypto.randomUUID(),dueDate:monthDueDate(m,day),paid:false,paidDate:'',paymentRecordId:'',recurring:true,recurringId:rid,created:Date.now()})}}
+ensureRecurringCurrentMonth();
+function records(d){return d.paymentRecords||[]}
+function paid(d){return records(d).reduce((s,r)=>s+Number(r.amount||0),0)}
+function remaining(d){return Math.max(0,Number(d.amount||0)-paid(d))}
+function progress(d){return d.amount?Math.min(100,paid(d)/d.amount*100):0}
+function save(){ensureRecurringCurrentMonth();localStorage.setItem(KEY,JSON.stringify(debts));localStorage.setItem(MONTHLY_KEY,JSON.stringify(monthlyItems));renderAll()}
+function renderAll(){renderOverview();renderMonth()}
+function renderOverview(){
+ const total=debts.reduce((s,d)=>s+Number(d.amount||0),0),p=debts.reduce((s,d)=>s+paid(d),0),rem=debts.reduce((s,d)=>s+remaining(d),0);
+ $('overviewTotal').textContent=money(rem);$('bottomDebtTotal').textContent=money(rem);$('overviewPaidText').textContent=`${money(p)} von ${money(total)} bezahlt`;
+ const arr=[...debts].sort((a,b)=>remaining(b)-remaining(a));
+ $('debtOverviewList').innerHTML=arr.length?arr.map(d=>`<div class="item"><div class="item-head"><div><div class="title">${esc(d.creditor)}</div>${d.note?`<div class="meta">${esc(d.note)}</div>`:''}</div><div><div class="value">${money(remaining(d))}</div><div class="meta" style="text-align:right">Restschuld</div></div></div><div class="progress"><span style="width:${progress(d)}%"></span></div><div class="progress-labels"><span>Bezahlt ${money(paid(d))}</span><span>${progress(d).toFixed(0)} %</span><span>Gesamt ${money(d.amount)}</span></div><div class="actions"><button class="btn success" onclick="openPaymentDialog('${d.id}')" ${remaining(d)<=0?'disabled':''}>Zahlung</button><button class="btn secondary" onclick="editDebt('${d.id}')">Bearbeiten</button><button class="btn danger" onclick="deleteDebt('${d.id}')">Löschen</button></div></div>`).join(''):'<div class="empty">Noch keine Schulden eingetragen.</div>';
+}
+function renderMonth(){
+ const m=currentMonth(),label=monthName(m),items=monthlyItems.filter(x=>(x.dueDate||'').slice(0,7)===m);
+ const open=items.filter(x=>!x.paid).sort((a,b)=>a.dueDate.localeCompare(b.dueDate));
+ const done=items.filter(x=>x.paid).sort((a,b)=>(b.paidDate||b.dueDate).localeCompare(a.paidDate||a.dueDate));
+ const openTotal=open.reduce((s,x)=>s+x.amount,0),paidTotal=done.reduce((s,x)=>s+x.amount,0);
+ $('monthTitle').textContent='Offene Zahlungen – '+label;$('paymentsTitle').textContent='Bezahlte Zahlungen – '+label;$('monthHeroLabel').textContent='Offen im '+label;
+ $('monthOpenHero').textContent=money(openTotal);$('bottomMonthTotal').textContent=money(openTotal);$('monthPaidHero').textContent='Diesen Monat bezahlt: '+money(paidTotal);$('monthPaymentSum').textContent=money(paidTotal);
+ $('monthOpenList').innerHTML=open.length?open.map(x=>{const d=debts.find(y=>y.id===x.debtId);return `<div class="item ${x.dueDate<today()?'overdue':''}"><div class="item-head"><div><div class="title">${esc(x.title)}</div><div class="meta">${d?esc(d.creditor):'Ohne Gesamtschuld'}${x.recurring?' · monatlich wiederkehrend':''} · Termin ${new Date(x.dueDate+'T00:00:00').toLocaleDateString('de-DE')}</div>${x.note?`<div class="meta">${esc(x.note)}</div>`:''}<span class="pill ${x.dueDate<today()?'overdue':'open'}">${x.dueDate<today()?'Überfällig':'Offen'}</span></div><div class="value">${money(x.amount)}</div></div><label class="checkline"><input type="checkbox" onchange="setMonthlyPaid('${x.id}',this.checked)"><strong>Als bezahlt abhaken</strong></label><div class="actions"><button class="btn secondary" onclick="editMonthly('${x.id}')">Bearbeiten</button><button class="btn danger" onclick="deleteMonthly('${x.id}')">Löschen</button></div></div>`}).join(''):'<div class="empty">Für diesen Monat sind keine Zahlungen offen.</div>';
+ $('monthPaymentList').innerHTML=done.length?done.map(x=>{const d=debts.find(y=>y.id===x.debtId);return `<div class="item paid-item"><div class="item-head"><div><div class="title">${esc(x.title)}</div><div class="meta">${d?esc(d.creditor):'Ohne Gesamtschuld'}${x.recurring?' · monatlich wiederkehrend':''} · bezahlt am ${new Date((x.paidDate||x.dueDate)+'T00:00:00').toLocaleDateString('de-DE')}</div>${x.note?`<div class="meta">${esc(x.note)}</div>`:''}</div><div class="value" style="color:var(--green)">${money(x.amount)}</div></div><label class="checkline"><input type="checkbox" checked onchange="setMonthlyPaid('${x.id}',this.checked)"><strong>Bezahlt</strong></label></div>`}).join(''):'<div class="empty">Im aktuellen Monat wurde noch nichts abgehakt.</div>';
+}
+function debtOptions(selected=''){return debts.filter(d=>remaining(d)>0||d.id===selected).map(d=>`<option value="${d.id}" ${d.id===selected?'selected':''}>${esc(d.creditor)} – Rest ${money(remaining(d))}</option>`).join('')}
+function updateMonthlyType(){const linked=$('monthlyTypeDebt').checked;$('monthlyDebtWrap').classList.toggle('hidden',!linked);$('monthlyDebtId').required=linked;if(linked&&!debts.length){alert('Lege zuerst in der Gesamtschuldenübersicht eine Schuld an.');$('monthlyTypeStandalone').checked=true;$('monthlyDebtWrap').classList.add('hidden');$('monthlyDebtId').required=false}}
+$('monthlyTypeStandalone').addEventListener('change',updateMonthlyType);$('monthlyTypeDebt').addEventListener('change',updateMonthlyType);
+function openMonthlyDialog(){$('monthlyForm').reset();$('monthlyEditId').value='';$('monthlyDebtId').innerHTML=debtOptions();$('monthlyTypeStandalone').checked=true;$('monthlyDueDate').value=today();updateMonthlyType();monthlyDialog.showModal()}
+function editMonthly(id){const x=monthlyItems.find(y=>y.id===id);if(!x||x.paid)return;$('monthlyEditId').value=id;$('monthlyTitleInput').value=x.title;$('monthlyDebtId').innerHTML=debtOptions(x.debtId);if(x.debtId){$('monthlyTypeDebt').checked=true;$('monthlyDebtId').value=x.debtId}else{$('monthlyTypeStandalone').checked=true}$('monthlyPaymentAmount').value=x.amount;$('monthlyDueDate').value=x.dueDate;$('monthlyNote').value=x.note||'';updateMonthlyType();monthlyDialog.showModal()}
+$('monthlyForm').addEventListener('submit',e=>{e.preventDefault();const id=$('monthlyEditId').value||crypto.randomUUID();const old=monthlyItems.find(x=>x.id===id);const linked=$('monthlyTypeDebt').checked;const debtId=linked?$('monthlyDebtId').value:'';if(linked&&!debtId)return alert('Bitte eine Gesamtschuld auswählen.');const recurring=true;const obj={id,title:$('monthlyTitleInput').value.trim(),debtId,amount:Number($('monthlyPaymentAmount').value),dueDate:$('monthlyDueDate').value,note:$('monthlyNote').value.trim(),paid:old?.paid||false,paidDate:old?.paidDate||'',paymentRecordId:old?.paymentRecordId||'',recurring,recurringId:old?.recurringId||id,created:old?.created||Date.now()};const i=monthlyItems.findIndex(x=>x.id===id);if(i>=0)monthlyItems[i]=obj;else monthlyItems.push(obj);monthlyDialog.close();save()});
+function setMonthlyPaid(id,checked){const x=monthlyItems.find(y=>y.id===id);if(!x)return;const d=x.debtId?debts.find(y=>y.id===x.debtId):null;if(x.debtId&&!d){alert('Die zugeordnete Schuld wurde nicht gefunden.');renderAll();return}if(checked){if(d&&x.amount>remaining(d)+0.001){alert('Der Betrag ist höher als die verbleibende Restschuld. Bitte Zahlung bearbeiten.');renderAll();return}if(d){const rec={id:crypto.randomUUID(),date:today(),amount:x.amount,note:x.title+(x.note?' – '+x.note:''),created:Date.now(),sourceMonthlyId:x.id};records(d).push(rec);x.paymentRecordId=rec.id}x.paid=true;x.paidDate=today()}else{if(d)d.paymentRecords=records(d).filter(r=>r.id!==x.paymentRecordId&&r.sourceMonthlyId!==x.id);x.paid=false;x.paidDate='';x.paymentRecordId=''}save()}
+function deleteMonthly(id){const x=monthlyItems.find(y=>y.id===id);if(!x)return;if(x.paid)return alert('Bezahlte Zahlung zuerst wieder auf offen setzen.');if(confirm('Diese offene Monatszahlung löschen?')){monthlyItems=monthlyItems.filter(y=>y.id!==id);save()}}
+let debtDialogSource='overview';
+function openDebtDialog(source='overview'){ debtDialogSource=source;$('debtForm').reset();$('editId').value='';$('monthlyAmount').value='0';$('dueDay').value='1';debtDialog.showModal() }
+function editDebt(id){const d=debts.find(x=>x.id===id);if(!d)return;$('editId').value=id;$('creditor').value=d.creditor;$('amount').value=d.amount;$('monthlyAmount').value=d.monthlyAmount||0;$('dueDay').value=d.dueDay||1;$('note').value=d.note||'';debtDialog.showModal()}
+$('debtForm').addEventListener('submit',e=>{e.preventDefault();const id=$('editId').value||crypto.randomUUID(),old=debts.find(d=>d.id===id),obj={id,creditor:$('creditor').value.trim(),amount:Number($('amount').value),monthlyAmount:Number($('monthlyAmount').value||0),dueDay:Number($('dueDay').value||1),note:$('note').value.trim(),created:old?.created||Date.now(),paymentRecords:old?records(old):[]};const i=debts.findIndex(d=>d.id===id);if(i>=0)debts[i]=obj;else debts.push(obj);debtDialog.close();save();});
+function openPaymentDialog(id){const d=debts.find(x=>x.id===id);if(!d)return;$('paymentDebtId').value=id;$('paymentDebtName').value=d.creditor+' – Rest '+money(remaining(d));$('paymentDate').value=today();$('paymentAmount').value='';$('paymentNote').value='Direkte Zahlung';paymentDialog.showModal()}
+$('paymentForm').addEventListener('submit',e=>{e.preventDefault();const d=debts.find(x=>x.id===$('paymentDebtId').value);if(!d)return;const value=Number($('paymentAmount').value);if(!value||value<=0)return alert('Bitte einen gültigen Betrag eingeben.');if(value>remaining(d)+0.001)return alert('Die Zahlung ist höher als die Restschuld.');records(d).push({id:crypto.randomUUID(),date:$('paymentDate').value,amount:value,note:$('paymentNote').value.trim(),created:Date.now()});paymentDialog.close();save()});
+function deleteDebt(id){if(monthlyItems.some(x=>x.debtId===id))return alert('Dieser Schuld sind Monatszahlungen zugeordnet. Bitte diese zuerst löschen.');if(confirm('Diese Schuld samt Zahlungen wirklich löschen?')){debts=debts.filter(d=>d.id!==id);save()}}
+document.querySelectorAll('.footer button').forEach(b=>b.onclick=()=>{document.querySelectorAll('section').forEach(s=>s.classList.add('hidden'));$(b.dataset.page).classList.remove('hidden');document.querySelectorAll('.footer button').forEach(x=>x.classList.toggle('active',x===b));renderAll()});
+let deferredPrompt;window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;$('installBtn').classList.remove('hidden')});$('installBtn').onclick=async()=>{if(deferredPrompt){deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;$('installBtn').classList.add('hidden')}};if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js');
+save();
+</script>
+</body>
+</html>
