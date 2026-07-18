@@ -1,19 +1,12 @@
-GitHub-Pages-Upload
+MEINE SCHULDEN - PWA VERSION 5
 
-Diese fünf Dateien direkt in das Hauptverzeichnis deines GitHub-Repositories hochladen:
-- index.html
-- manifest.json
-- sw.js
-- icon-192.png
-- icon-512.png
-- .nojekyll (optional, ist in der ZIP enthalten)
+Neu:
+- Monatszahlungen per Drag & Drop sortieren.
+- Auf dem Handy den Griff (drei Linien) gedrueckt halten und nach oben oder unten ziehen.
+- Die Reihenfolge wird fuer jeden Monat lokal gespeichert.
 
-Danach in GitHub:
-Settings > Pages > Deploy from a branch > main > /(root) > Save
-
-Die App-Adresse lautet anschließend normalerweise:
-https://DEIN-BENUTZERNAME.github.io/DEIN-REPOSITORY/
-
-Auf Android in Chrome öffnen und über das Drei-Punkte-Menü "App installieren" oder "Zum Startbildschirm hinzufügen" wählen.
-
-Alle eingegebenen Daten bleiben lokal auf dem jeweiligen Handy im Browser-/App-Speicher. GitHub speichert nur die App-Dateien, nicht deine Schulden- oder Zahlungsdaten.
+GitHub Pages:
+1. Alle Dateien aus diesem Ordner in das Repository hochladen.
+2. Vorhandene Dateien ersetzen und committen.
+3. App auf dem Handy vollstaendig schliessen und neu oeffnen.
+4. Falls weiterhin die alte Version erscheint, die Seite neu laden oder den Website-Cache loeschen.
