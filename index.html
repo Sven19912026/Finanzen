@@ -27,6 +27,11 @@
   <section id="monthPage" class="hidden">
     <div class="card hero"><small id="monthHeroLabel">Offen im aktuellen Monat</small><strong id="monthOpenHero">0,00 €</strong><div class="sub" id="monthPaidHero">Diesen Monat bezahlt: 0,00 €</div></div>
     <div class="card">
+      <label for="monthSelect" style="margin-top:0">Monat auswählen</label>
+      <select id="monthSelect"></select>
+      <div class="tiny" style="margin-top:7px">Es stehen immer der aktuelle und der folgende Monat zur Auswahl. Beim Monatswechsel wird die Auswahl automatisch aktualisiert.</div>
+    </div>
+    <div class="card">
       <div class="section-head"><div><h2 id="monthTitle">Offene Zahlungen</h2><div class="sub">Monatlich wiederkehrend – wahlweise mit oder ohne Gesamtschuld</div></div><button class="btn primary" onclick="openMonthlyDialog()">+ Monatszahlung</button></div>
       <div id="monthOpenList"></div>
       <div class="summary-row"><span>Offene Gesamtsumme im Monat</span><span id="bottomMonthTotal">0,00 €</span></div>
@@ -38,7 +43,7 @@
   </section>
 </div>
 
-<div class="footer"><div class="footer-inner"><button class="btn active" data-page="overviewPage">Gesamtschulden</button><button class="btn" data-page="monthPage">Aktueller Monat</button></div></div>
+<div class="footer"><div class="footer-inner"><button class="btn active" data-page="overviewPage">Gesamtschulden</button><button class="btn" data-page="monthPage">Monatsübersicht</button></div></div>
 
 <dialog id="debtDialog"><div class="modal"><div class="modal-head"><h2>Schuld anlegen / bearbeiten</h2><button class="close" onclick="debtDialog.close()">×</button></div>
 <form id="debtForm"><input type="hidden" id="editId">
@@ -60,11 +65,11 @@
 <dialog id="monthlyDialog"><div class="modal"><div class="modal-head"><h2>Offene Monatszahlung</h2><button class="close" onclick="monthlyDialog.close()">×</button></div>
 <form id="monthlyForm"><input type="hidden" id="monthlyEditId">
 <label>Bezeichnung</label><input id="monthlyTitleInput" required placeholder="z. B. Rate Bank oder Rechnung Strom">
-<label>Art der monatlichen Zahlung</label>
+<label>Art der Zahlung</label>
 <label class="checkline"><input type="radio" name="monthlyType" id="monthlyTypeStandalone" value="standalone" checked><strong>Ohne Gesamtschuld</strong></label>
-<div class="tiny">Die Zahlung wird jeden Monat neu angelegt, aber keiner Gesamtschuld zugeordnet.</div>
+<div class="tiny">Die Zahlung wird keiner Gesamtschuld zugeordnet.</div>
 <label class="checkline"><input type="radio" name="monthlyType" id="monthlyTypeDebt" value="debt"><strong>Mit Gesamtschuld</strong></label>
-<div class="tiny">Die Zahlung wird jeden Monat neu angelegt und beim Abhaken von der ausgewählten Gesamtschuld abgezogen.</div>
+<div class="tiny">Beim Abhaken wird die Zahlung von der ausgewählten Gesamtschuld abgezogen.</div>
 <div id="monthlyDebtWrap" class="hidden">
 <label>Gesamtschuld auswählen</label>
 <select id="monthlyDebtId"></select>
@@ -72,7 +77,7 @@
 </div>
 <div class="grid"><div><label>Betrag (€)</label><input id="monthlyPaymentAmount" type="number" min="0.01" step="0.01" inputmode="decimal" required></div><div><label>Zahlungstermin</label><input id="monthlyDueDate" type="date" required></div></div>
 <label>Notiz</label><input id="monthlyNote" placeholder="z. B. Rate Juli oder Rechnungsnummer">
-<input id="monthlyRecurring" type="hidden" value="1"><div class="tiny" style="margin-top:10px">Diese Zahlung wird automatisch jeden Monat mit demselben Betrag und Zahlungstag übernommen.</div>
+<label class="checkline" style="margin-top:12px"><input id="monthlyRecurring" type="checkbox"><strong>Monatlich wiederkehrend</strong></label><div class="tiny">Nur mit gesetztem Haken wird die Zahlung automatisch in den nächsten Monat übernommen. Ohne Haken gilt sie ausschließlich für den ausgewählten Monat.</div>
 <button class="btn primary" style="width:100%;margin-top:14px" type="submit">Offene Zahlung speichern</button>
 </form></div></dialog>
 
@@ -82,23 +87,27 @@ const $=id=>document.getElementById(id);
 const money=n=>new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(Number(n)||0);
 const today=()=>new Date().toISOString().slice(0,10);
 const currentMonth=()=>today().slice(0,7);
+const addMonths=(month,count)=>{const [y,m]=month.split('-').map(Number);const d=new Date(y,m-1+count,1);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')};
+const nextMonth=()=>addMonths(currentMonth(),1);
+const availableMonths=()=>[currentMonth(),nextMonth()];
 const monthName=m=>new Date(m+'-01T00:00:00').toLocaleDateString('de-DE',{month:'long',year:'numeric'});
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
-let debts=[],monthlyItems=[];
+let debts=[],monthlyItems=[],selectedMonth=currentMonth();
 try{debts=JSON.parse(localStorage.getItem(KEY)||'[]');if(!Array.isArray(debts))debts=[]}catch{debts=[]}
 try{monthlyItems=JSON.parse(localStorage.getItem(MONTHLY_KEY)||'[]');if(!Array.isArray(monthlyItems))monthlyItems=[]}catch{monthlyItems=[]}
 function migrate(d){d.paymentRecords=Array.isArray(d.paymentRecords)?d.paymentRecords:[];d.amount=Number(d.amount)||0;d.monthlyAmount=Number(d.monthlyAmount)||0;d.dueDay=Number(d.dueDay)||1;d.creditor=d.creditor||'Ohne Gläubiger';return d}
 debts=debts.map(migrate);
 monthlyItems=monthlyItems.map(x=>({...x,amount:Number(x.amount)||0,paid:Boolean(x.paid),recurring:Boolean(x.recurring),recurringId:x.recurringId||''}));
 function monthDueDate(month,day){const [y,m]=month.split('-').map(Number);const last=new Date(y,m,0).getDate();return month+'-'+String(Math.min(Math.max(Number(day)||1,1),last)).padStart(2,'0')}
-function ensureRecurringCurrentMonth(){const m=currentMonth();const templates=new Map();monthlyItems.filter(x=>x.recurring).sort((a,b)=>(a.created||0)-(b.created||0)).forEach(x=>{const rid=x.recurringId||x.id;templates.set(rid,x)});for(const [rid,t] of templates){if(monthlyItems.some(x=>(x.dueDate||'').slice(0,7)===m&&(x.recurringId||x.id)===rid))continue;const day=(t.dueDate||'').slice(8,10)||'01';monthlyItems.push({...t,id:crypto.randomUUID(),dueDate:monthDueDate(m,day),paid:false,paidDate:'',paymentRecordId:'',recurring:true,recurringId:rid,created:Date.now()})}}
-ensureRecurringCurrentMonth();
+function ensureRecurringVisibleMonths(){const months=availableMonths();const templates=new Map();monthlyItems.filter(x=>x.recurring).sort((a,b)=>(a.created||0)-(b.created||0)).forEach(x=>{const rid=x.recurringId||x.id;templates.set(rid,x)});for(const m of months){for(const [rid,t] of templates){if(monthlyItems.some(x=>(x.dueDate||'').slice(0,7)===m&&(x.recurringId||x.id)===rid))continue;const day=(t.dueDate||'').slice(8,10)||'01';monthlyItems.push({...t,id:crypto.randomUUID(),dueDate:monthDueDate(m,day),paid:false,paidDate:'',paymentRecordId:'',recurring:true,recurringId:rid,created:Date.now()})}}}
+function syncMonthSelector(){const months=availableMonths();if(!months.includes(selectedMonth))selectedMonth=months[0];$('monthSelect').innerHTML=months.map(m=>`<option value="${m}" ${m===selectedMonth?'selected':''}>${monthName(m)}</option>`).join('')}
+ensureRecurringVisibleMonths();
 function records(d){return d.paymentRecords||[]}
 function paid(d){return records(d).reduce((s,r)=>s+Number(r.amount||0),0)}
 function remaining(d){return Math.max(0,Number(d.amount||0)-paid(d))}
 function progress(d){return d.amount?Math.min(100,paid(d)/d.amount*100):0}
-function save(){ensureRecurringCurrentMonth();localStorage.setItem(KEY,JSON.stringify(debts));localStorage.setItem(MONTHLY_KEY,JSON.stringify(monthlyItems));renderAll()}
-function renderAll(){renderOverview();renderMonth()}
+function save(){ensureRecurringVisibleMonths();localStorage.setItem(KEY,JSON.stringify(debts));localStorage.setItem(MONTHLY_KEY,JSON.stringify(monthlyItems));renderAll()}
+function renderAll(){syncMonthSelector();renderOverview();renderMonth()}
 function renderOverview(){
  const total=debts.reduce((s,d)=>s+Number(d.amount||0),0),p=debts.reduce((s,d)=>s+paid(d),0),rem=debts.reduce((s,d)=>s+remaining(d),0);
  $('overviewTotal').textContent=money(rem);$('bottomDebtTotal').textContent=money(rem);$('overviewPaidText').textContent=`${money(p)} von ${money(total)} bezahlt`;
@@ -106,21 +115,21 @@ function renderOverview(){
  $('debtOverviewList').innerHTML=arr.length?arr.map(d=>`<div class="item"><div class="item-head"><div><div class="title">${esc(d.creditor)}</div>${d.note?`<div class="meta">${esc(d.note)}</div>`:''}</div><div><div class="value">${money(remaining(d))}</div><div class="meta" style="text-align:right">Restschuld</div></div></div><div class="progress"><span style="width:${progress(d)}%"></span></div><div class="progress-labels"><span>Bezahlt ${money(paid(d))}</span><span>${progress(d).toFixed(0)} %</span><span>Gesamt ${money(d.amount)}</span></div><div class="actions"><button class="btn success" onclick="openPaymentDialog('${d.id}')" ${remaining(d)<=0?'disabled':''}>Zahlung</button><button class="btn secondary" onclick="editDebt('${d.id}')">Bearbeiten</button><button class="btn danger" onclick="deleteDebt('${d.id}')">Löschen</button></div></div>`).join(''):'<div class="empty">Noch keine Schulden eingetragen.</div>';
 }
 function renderMonth(){
- const m=currentMonth(),label=monthName(m),items=monthlyItems.filter(x=>(x.dueDate||'').slice(0,7)===m);
+ const m=selectedMonth,label=monthName(m),items=monthlyItems.filter(x=>(x.dueDate||'').slice(0,7)===m);
  const open=items.filter(x=>!x.paid).sort((a,b)=>a.dueDate.localeCompare(b.dueDate));
  const done=items.filter(x=>x.paid).sort((a,b)=>(b.paidDate||b.dueDate).localeCompare(a.paidDate||a.dueDate));
  const openTotal=open.reduce((s,x)=>s+x.amount,0),paidTotal=done.reduce((s,x)=>s+x.amount,0);
  $('monthTitle').textContent='Offene Zahlungen – '+label;$('paymentsTitle').textContent='Bezahlte Zahlungen – '+label;$('monthHeroLabel').textContent='Offen im '+label;
  $('monthOpenHero').textContent=money(openTotal);$('bottomMonthTotal').textContent=money(openTotal);$('monthPaidHero').textContent='Diesen Monat bezahlt: '+money(paidTotal);$('monthPaymentSum').textContent=money(paidTotal);
- $('monthOpenList').innerHTML=open.length?open.map(x=>{const d=debts.find(y=>y.id===x.debtId);return `<div class="item ${x.dueDate<today()?'overdue':''}"><div class="item-head"><div><div class="title">${esc(x.title)}</div><div class="meta">${d?esc(d.creditor):'Ohne Gesamtschuld'}${x.recurring?' · monatlich wiederkehrend':''} · Termin ${new Date(x.dueDate+'T00:00:00').toLocaleDateString('de-DE')}</div>${x.note?`<div class="meta">${esc(x.note)}</div>`:''}<span class="pill ${x.dueDate<today()?'overdue':'open'}">${x.dueDate<today()?'Überfällig':'Offen'}</span></div><div class="value">${money(x.amount)}</div></div><label class="checkline"><input type="checkbox" onchange="setMonthlyPaid('${x.id}',this.checked)"><strong>Als bezahlt abhaken</strong></label><div class="actions"><button class="btn secondary" onclick="editMonthly('${x.id}')">Bearbeiten</button><button class="btn danger" onclick="deleteMonthly('${x.id}')">Löschen</button></div></div>`}).join(''):'<div class="empty">Für diesen Monat sind keine Zahlungen offen.</div>';
- $('monthPaymentList').innerHTML=done.length?done.map(x=>{const d=debts.find(y=>y.id===x.debtId);return `<div class="item paid-item"><div class="item-head"><div><div class="title">${esc(x.title)}</div><div class="meta">${d?esc(d.creditor):'Ohne Gesamtschuld'}${x.recurring?' · monatlich wiederkehrend':''} · bezahlt am ${new Date((x.paidDate||x.dueDate)+'T00:00:00').toLocaleDateString('de-DE')}</div>${x.note?`<div class="meta">${esc(x.note)}</div>`:''}</div><div class="value" style="color:var(--green)">${money(x.amount)}</div></div><label class="checkline"><input type="checkbox" checked onchange="setMonthlyPaid('${x.id}',this.checked)"><strong>Bezahlt</strong></label></div>`}).join(''):'<div class="empty">Im aktuellen Monat wurde noch nichts abgehakt.</div>';
+ $('monthOpenList').innerHTML=open.length?open.map(x=>{const d=debts.find(y=>y.id===x.debtId);return `<div class="item ${m===currentMonth()&&x.dueDate<today()?'overdue':''}"><div class="item-head"><div><div class="title">${esc(x.title)}</div><div class="meta">${d?esc(d.creditor):'Ohne Gesamtschuld'}${x.recurring?' · monatlich wiederkehrend':''} · Termin ${new Date(x.dueDate+'T00:00:00').toLocaleDateString('de-DE')}</div>${x.note?`<div class="meta">${esc(x.note)}</div>`:''}<span class="pill ${m===currentMonth()&&x.dueDate<today()?'overdue':'open'}">${m===currentMonth()&&x.dueDate<today()?'Überfällig':'Offen'}</span></div><div class="value">${money(x.amount)}</div></div><label class="checkline"><input type="checkbox" onchange="setMonthlyPaid('${x.id}',this.checked)"><strong>Als bezahlt abhaken</strong></label><div class="actions"><button class="btn secondary" onclick="editMonthly('${x.id}')">Bearbeiten</button><button class="btn danger" onclick="deleteMonthly('${x.id}')">Löschen</button></div></div>`}).join(''):'<div class="empty">Für diesen Monat sind keine Zahlungen offen.</div>';
+ $('monthPaymentList').innerHTML=done.length?done.map(x=>{const d=debts.find(y=>y.id===x.debtId);return `<div class="item paid-item"><div class="item-head"><div><div class="title">${esc(x.title)}</div><div class="meta">${d?esc(d.creditor):'Ohne Gesamtschuld'}${x.recurring?' · monatlich wiederkehrend':''} · bezahlt am ${new Date((x.paidDate||x.dueDate)+'T00:00:00').toLocaleDateString('de-DE')}</div>${x.note?`<div class="meta">${esc(x.note)}</div>`:''}</div><div class="value" style="color:var(--green)">${money(x.amount)}</div></div><label class="checkline"><input type="checkbox" checked onchange="setMonthlyPaid('${x.id}',this.checked)"><strong>Bezahlt</strong></label></div>`}).join(''):'<div class="empty">In diesem Monat wurde noch nichts abgehakt.</div>';
 }
 function debtOptions(selected=''){return debts.filter(d=>remaining(d)>0||d.id===selected).map(d=>`<option value="${d.id}" ${d.id===selected?'selected':''}>${esc(d.creditor)} – Rest ${money(remaining(d))}</option>`).join('')}
 function updateMonthlyType(){const linked=$('monthlyTypeDebt').checked;$('monthlyDebtWrap').classList.toggle('hidden',!linked);$('monthlyDebtId').required=linked;if(linked&&!debts.length){alert('Lege zuerst in der Gesamtschuldenübersicht eine Schuld an.');$('monthlyTypeStandalone').checked=true;$('monthlyDebtWrap').classList.add('hidden');$('monthlyDebtId').required=false}}
-$('monthlyTypeStandalone').addEventListener('change',updateMonthlyType);$('monthlyTypeDebt').addEventListener('change',updateMonthlyType);
-function openMonthlyDialog(){$('monthlyForm').reset();$('monthlyEditId').value='';$('monthlyDebtId').innerHTML=debtOptions();$('monthlyTypeStandalone').checked=true;$('monthlyDueDate').value=today();updateMonthlyType();monthlyDialog.showModal()}
-function editMonthly(id){const x=monthlyItems.find(y=>y.id===id);if(!x||x.paid)return;$('monthlyEditId').value=id;$('monthlyTitleInput').value=x.title;$('monthlyDebtId').innerHTML=debtOptions(x.debtId);if(x.debtId){$('monthlyTypeDebt').checked=true;$('monthlyDebtId').value=x.debtId}else{$('monthlyTypeStandalone').checked=true}$('monthlyPaymentAmount').value=x.amount;$('monthlyDueDate').value=x.dueDate;$('monthlyNote').value=x.note||'';updateMonthlyType();monthlyDialog.showModal()}
-$('monthlyForm').addEventListener('submit',e=>{e.preventDefault();const id=$('monthlyEditId').value||crypto.randomUUID();const old=monthlyItems.find(x=>x.id===id);const linked=$('monthlyTypeDebt').checked;const debtId=linked?$('monthlyDebtId').value:'';if(linked&&!debtId)return alert('Bitte eine Gesamtschuld auswählen.');const recurring=true;const obj={id,title:$('monthlyTitleInput').value.trim(),debtId,amount:Number($('monthlyPaymentAmount').value),dueDate:$('monthlyDueDate').value,note:$('monthlyNote').value.trim(),paid:old?.paid||false,paidDate:old?.paidDate||'',paymentRecordId:old?.paymentRecordId||'',recurring,recurringId:old?.recurringId||id,created:old?.created||Date.now()};const i=monthlyItems.findIndex(x=>x.id===id);if(i>=0)monthlyItems[i]=obj;else monthlyItems.push(obj);monthlyDialog.close();save()});
+$('monthlyTypeStandalone').addEventListener('change',updateMonthlyType);$('monthlyTypeDebt').addEventListener('change',updateMonthlyType);$('monthSelect').addEventListener('change',e=>{selectedMonth=e.target.value;ensureRecurringVisibleMonths();localStorage.setItem(MONTHLY_KEY,JSON.stringify(monthlyItems));renderMonth()});
+function openMonthlyDialog(){$('monthlyForm').reset();$('monthlyEditId').value='';$('monthlyDebtId').innerHTML=debtOptions();$('monthlyTypeStandalone').checked=true;$('monthlyRecurring').checked=false;const day=today().slice(8,10);$('monthlyDueDate').value=monthDueDate(selectedMonth,day);updateMonthlyType();monthlyDialog.showModal()}
+function editMonthly(id){const x=monthlyItems.find(y=>y.id===id);if(!x||x.paid)return;$('monthlyEditId').value=id;$('monthlyTitleInput').value=x.title;$('monthlyDebtId').innerHTML=debtOptions(x.debtId);if(x.debtId){$('monthlyTypeDebt').checked=true;$('monthlyDebtId').value=x.debtId}else{$('monthlyTypeStandalone').checked=true}$('monthlyPaymentAmount').value=x.amount;$('monthlyDueDate').value=x.dueDate;$('monthlyNote').value=x.note||'';$('monthlyRecurring').checked=Boolean(x.recurring);updateMonthlyType();monthlyDialog.showModal()}
+$('monthlyForm').addEventListener('submit',e=>{e.preventDefault();const id=$('monthlyEditId').value||crypto.randomUUID();const old=monthlyItems.find(x=>x.id===id);const linked=$('monthlyTypeDebt').checked;const debtId=linked?$('monthlyDebtId').value:'';if(linked&&!debtId)return alert('Bitte eine Gesamtschuld auswählen.');const recurring=$('monthlyRecurring').checked;const recurringId=old?.recurringId||id;const obj={id,title:$('monthlyTitleInput').value.trim(),debtId,amount:Number($('monthlyPaymentAmount').value),dueDate:$('monthlyDueDate').value,note:$('monthlyNote').value.trim(),paid:old?.paid||false,paidDate:old?.paidDate||'',paymentRecordId:old?.paymentRecordId||'',recurring,recurringId,created:old?.created||Date.now()};const i=monthlyItems.findIndex(x=>x.id===id);if(i>=0)monthlyItems[i]=obj;else monthlyItems.push(obj);if(!recurring){monthlyItems=monthlyItems.filter(x=>x.id===id||x.paid||(x.recurringId||x.id)!==recurringId)}monthlyDialog.close();save()});
 function setMonthlyPaid(id,checked){const x=monthlyItems.find(y=>y.id===id);if(!x)return;const d=x.debtId?debts.find(y=>y.id===x.debtId):null;if(x.debtId&&!d){alert('Die zugeordnete Schuld wurde nicht gefunden.');renderAll();return}if(checked){if(d&&x.amount>remaining(d)+0.001){alert('Der Betrag ist höher als die verbleibende Restschuld. Bitte Zahlung bearbeiten.');renderAll();return}if(d){const rec={id:crypto.randomUUID(),date:today(),amount:x.amount,note:x.title+(x.note?' – '+x.note:''),created:Date.now(),sourceMonthlyId:x.id};records(d).push(rec);x.paymentRecordId=rec.id}x.paid=true;x.paidDate=today()}else{if(d)d.paymentRecords=records(d).filter(r=>r.id!==x.paymentRecordId&&r.sourceMonthlyId!==x.id);x.paid=false;x.paidDate='';x.paymentRecordId=''}save()}
 function deleteMonthly(id){const x=monthlyItems.find(y=>y.id===id);if(!x)return;if(x.paid)return alert('Bezahlte Zahlung zuerst wieder auf offen setzen.');if(confirm('Diese offene Monatszahlung löschen?')){monthlyItems=monthlyItems.filter(y=>y.id!==id);save()}}
 let debtDialogSource='overview';
