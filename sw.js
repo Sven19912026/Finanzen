@@ -1,4 +1,4 @@
-const CACHE_NAME = 'meine-schulden-pwa-v5';
+const CACHE_NAME = 'meine-schulden-pwa-v6';
 const APP_FILES = [
   './',
   './index.html',

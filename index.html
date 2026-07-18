@@ -128,10 +128,51 @@ function renderMonth(){
  $('monthPaymentList').innerHTML=done.length?done.map(x=>{const d=debts.find(y=>y.id===x.debtId);return `<div class="item paid-item"><div class="item-head"><div><div class="title">${esc(x.title)}</div><div class="meta">${d?esc(d.creditor):'Ohne Gesamtschuld'}${x.recurring?' · monatlich wiederkehrend':''} · bezahlt am ${new Date((x.paidDate||x.dueDate)+'T00:00:00').toLocaleDateString('de-DE')}</div>${x.note?`<div class="meta">${esc(x.note)}</div>`:''}</div><div class="value" style="color:var(--green)">${money(x.amount)}</div></div><label class="checkline"><input type="checkbox" checked onchange="setMonthlyPaid('${x.id}',this.checked)"><strong>Bezahlt</strong></label></div>`}).join(''):'<div class="empty">In diesem Monat wurde noch nichts abgehakt.</div>';
 }
 function persistMonthlyOrder(){const ids=[...$('monthOpenList').querySelectorAll('[data-monthly-id]')].map(el=>el.dataset.monthlyId);ids.forEach((id,i)=>{const x=monthlyItems.find(y=>y.id===id);if(x)x.sortOrder=i});localStorage.setItem(MONTHLY_KEY,JSON.stringify(monthlyItems))}
-function initMonthlyDrag(){const list=$('monthOpenList');let dragged=null,pointerId=null;
- list.querySelectorAll('.drag-handle').forEach(handle=>{handle.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'&&e.button!==0)return;dragged=handle.closest('[data-monthly-id]');if(!dragged)return;pointerId=e.pointerId;handle.setPointerCapture(pointerId);dragged.classList.add('dragging');document.body.style.overflow='hidden';e.preventDefault()});
- handle.addEventListener('pointermove',e=>{if(!dragged||e.pointerId!==pointerId)return;const el=document.elementFromPoint(e.clientX,e.clientY)?.closest('[data-monthly-id]');if(!el||el===dragged||el.parentElement!==list)return;const r=el.getBoundingClientRect();list.insertBefore(dragged,e.clientY<r.top+r.height/2?el:el.nextSibling);list.querySelectorAll('.drag-over').forEach(x=>x.classList.remove('drag-over'));el.classList.add('drag-over');e.preventDefault()});
- const finish=e=>{if(!dragged||e.pointerId!==pointerId)return;dragged.classList.remove('dragging');list.querySelectorAll('.drag-over').forEach(x=>x.classList.remove('drag-over'));document.body.style.overflow='';persistMonthlyOrder();dragged=null;pointerId=null;renderMonth()};handle.addEventListener('pointerup',finish);handle.addEventListener('pointercancel',finish)});
+function initMonthlyDrag(){
+ const list=$('monthOpenList');
+ let dragged=null,pointerId=null,startY=0,lastY=0,active=false;
+ const cleanup=()=>{
+  if(!dragged)return;
+  dragged.classList.remove('dragging');
+  list.querySelectorAll('.drag-over').forEach(x=>x.classList.remove('drag-over'));
+  document.body.style.overflow='';
+  document.body.style.touchAction='';
+  persistMonthlyOrder();
+  dragged=null;pointerId=null;active=false;
+ };
+ const move=e=>{
+  if(!dragged||e.pointerId!==pointerId)return;
+  lastY=e.clientY;
+  if(!active&&Math.abs(lastY-startY)>6){active=true;dragged.classList.add('dragging');document.body.style.overflow='hidden';document.body.style.touchAction='none'}
+  if(!active)return;
+  const target=document.elementFromPoint(e.clientX,e.clientY)?.closest('[data-monthly-id]');
+  if(target&&target!==dragged&&target.parentElement===list){
+   const r=target.getBoundingClientRect();
+   list.insertBefore(dragged,e.clientY<r.top+r.height/2?target:target.nextSibling);
+   list.querySelectorAll('.drag-over').forEach(x=>x.classList.remove('drag-over'));
+   target.classList.add('drag-over');
+  }
+  const edge=70;
+  if(e.clientY<edge)window.scrollBy({top:-10,behavior:'auto'});
+  else if(e.clientY>window.innerHeight-edge)window.scrollBy({top:10,behavior:'auto'});
+  e.preventDefault();
+ };
+ const finish=e=>{if(!dragged)return;if(e&&pointerId!==null&&e.pointerId!==undefined&&e.pointerId!==pointerId)return;cleanup()};
+ list.querySelectorAll('.drag-handle').forEach(handle=>{
+  handle.addEventListener('pointerdown',e=>{
+   if(e.pointerType==='mouse'&&e.button!==0)return;
+   cleanup();
+   dragged=handle.closest('[data-monthly-id]');
+   if(!dragged)return;
+   pointerId=e.pointerId;startY=e.clientY;lastY=e.clientY;active=false;
+   e.preventDefault();
+  });
+ });
+ document.addEventListener('pointermove',move,{passive:false});
+ document.addEventListener('pointerup',finish,{once:false});
+ document.addEventListener('pointercancel',finish,{once:false});
+ window.addEventListener('blur',cleanup,{once:true});
+ document.addEventListener('visibilitychange',()=>{if(document.hidden)cleanup()},{once:true});
 }
 function debtOptions(selected=''){return debts.filter(d=>remaining(d)>0||d.id===selected).map(d=>`<option value="${d.id}" ${d.id===selected?'selected':''}>${esc(d.creditor)} – Rest ${money(remaining(d))}</option>`).join('')}
 function updateMonthlyType(){const linked=$('monthlyTypeDebt').checked;$('monthlyDebtWrap').classList.toggle('hidden',!linked);$('monthlyDebtId').required=linked;if(linked&&!debts.length){alert('Lege zuerst in der Gesamtschuldenübersicht eine Schuld an.');$('monthlyTypeStandalone').checked=true;$('monthlyDebtWrap').classList.add('hidden');$('monthlyDebtId').required=false}}
