@@ -1,0 +1,11 @@
+PHASE 1 - PRIVATE CLOUD (Firebase bereits eingetragen)
+
+1. Firestore Database im Produktionsmodus erstellen, falls noch nicht geschehen.
+2. Firestore > Regeln öffnen, Inhalt von firestore.rules einfügen und veröffentlichen.
+3. Dateien entpackt in das jeweilige GitHub-Repository hochladen.
+4. GitHub Pages neu bereitstellen lassen.
+5. Alte PWA/Browserdaten vor der ersten Übernahme NICHT löschen.
+6. Auf dem Gerät mit den bisherigen Daten zuerst öffnen und ein Konto erstellen.
+7. In der zweiten App und auf weiteren Geräten mit derselben E-Mail und demselben Passwort anmelden.
+
+Beim ersten Login wird ein noch leerer Cloud-Datensatz mit den vorhandenen lokalen Daten befüllt. Danach synchronisieren sich Änderungen automatisch. Pro App wird bei geöffneter App einmal täglich ein Cloud-Backup angelegt.
