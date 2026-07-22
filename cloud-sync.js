@@ -75,15 +75,21 @@
       const local=window.exportCloudState();
       const remoteJson=JSON.stringify(window.normalizeCloudState(remote));
       const localJson=JSON.stringify(window.normalizeCloudState(local));
+      let mergedNeedsUpload=false;
       if(remoteJson!==localJson){
         applyingRemote=true;
         try{
-          window.importCloudState(remote);
+          mergedNeedsUpload=Boolean(window.importCloudState(remote));
         }finally{
           applyingRemote=false;
         }
       }
       cloudReady=true;
+      if(mergedNeedsUpload){
+        setStatus('Lokale Monatsdaten werden ergänzt …','sync');
+        await pushState();
+        return;
+      }
       setStatus('Cloud aktuell','ok');
       await dailyBackup(window.exportCloudState());
     },e=>{console.error(e);cloudReady=false;setStatus('Cloud nicht erreichbar','error')});
@@ -115,7 +121,7 @@
     db.enablePersistence({synchronizeTabs:true}).catch(()=>{});
     auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
     auth.onAuthStateChanged(user=>{
-      if(user){uid=user.uid;showAuth(false);setStatus('Cloud verbindet …','sync');subscribe()}
+      if(user){uid=user.uid;if(emailEl)emailEl.value='';if(passEl)passEl.value='';showAuth(false);setStatus('Cloud verbindet …','sync');subscribe()}
       else{uid=null;cloudReady=false;if(unsubscribe)unsubscribe();showAuth(true);setStatus('Nicht angemeldet','error')}
     });
   }catch(e){console.error(e);setStatus('Firebase-Fehler','error');showAuth(true);msgEl.textContent=errText(e)}
