@@ -1,1 +1,48 @@
-const C='schulden-pwa-v13-safe-month-merge';const A=['./','./index.html','./manifest.json','./firebase-config.js','./cloud-sync.js?v=2','./icon-192.png','./icon-512.png'];self.addEventListener('install',e=>e.waitUntil(caches.open(C).then(c=>c.addAll(A)).then(()=>self.skipWaiting())));self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))).then(()=>self.clients.claim())));self.addEventListener('fetch',e=>e.respondWith(fetch(e.request).then(r=>{let x=r.clone();caches.open(C).then(c=>c.put(e.request,x));return r}).catch(()=>caches.match(e.request).then(r=>r||caches.match('./index.html')))));
+const CACHE_NAME = 'schulden-pwa-v15-backup-rettung';
+const ASSETS = [
+  './',
+  './index.html',
+  './manifest.json',
+  './firebase-config.js',
+  './cloud-sync.js?v=15',
+  './icon-192.png',
+  './icon-512.png',
+];
+
+self.addEventListener('install', event => {
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then(async cache => {
+        for(const url of ASSETS){
+          try{
+            const response = await fetch(url, { cache: 'reload' });
+            if(response.ok) await cache.put(url, response);
+          }catch(error){
+            console.warn('Datei konnte nicht vorab gespeichert werden:', url, error);
+          }
+        }
+      })
+      .then(() => self.skipWaiting())
+  );
+});
+
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys()
+      .then(keys => Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))))
+      .then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener('fetch', event => {
+  if(event.request.method !== 'GET') return;
+  event.respondWith(
+    fetch(new Request(event.request, { cache: 'no-store' }))
+      .then(response => {
+        const copy = response.clone();
+        caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
+        return response;
+      })
+      .catch(() => caches.match(event.request).then(cached => cached || caches.match('./index.html')))
+  );
+});
