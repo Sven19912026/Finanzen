@@ -18,6 +18,7 @@
   let cloudReady = false;
   let restoringBackup = false;
   let lastProtectionMessage = '';
+  let syncInProgress = false;
 
   function setStatus(text, state = ''){
     if(!statusEl) return;
@@ -133,7 +134,7 @@
   }
 
   window.scheduleCloudSave = function(){
-    if(applyingRemote || restoringBackup || !cloudReady || !uid) return;
+    if(applyingRemote || restoringBackup || syncInProgress || !cloudReady || !uid) return;
     clearTimeout(saveTimer);
     setStatus('Speichert …', 'sync');
     saveTimer = setTimeout(() => pushState(), 650);
@@ -141,8 +142,9 @@
 
   async function pushState(options = {}){
     const { force = false, skipSafety = false, reason = 'Automatische Sicherung vor Cloud-Schreiben' } = options;
-    if(!cloudReady || !uid) return false;
+    if(!cloudReady || !uid || syncInProgress) return false;
 
+    syncInProgress = true;
     try{
       const payload = normalizedState(window.exportCloudState());
       const ref = appRef();
@@ -196,6 +198,8 @@
       console.error(error);
       setStatus('Cloudfehler', 'error');
       return false;
+    }finally{
+      syncInProgress = false;
     }
   }
 
@@ -204,8 +208,9 @@
     cloudReady = false;
     const ref = appRef();
 
-    unsubscribe = ref.onSnapshot({ includeMetadataChanges: true }, async snapshot => {
-      if(restoringBackup) return;
+    unsubscribe = ref.onSnapshot(async snapshot => {
+      if(restoringBackup || syncInProgress) return;
+      if(snapshot.metadata?.hasPendingWrites) return;
 
       // Der erste leere Offline-Cache darf niemals als echter Serverstand gelten.
       if(snapshot.metadata?.fromCache){

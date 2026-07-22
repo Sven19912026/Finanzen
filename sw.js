@@ -1,10 +1,10 @@
-const CACHE_NAME = 'schulden-pwa-v15-backup-rettung';
+const CACHE_NAME = 'schulden-pwa-v16-sync-fix';
 const ASSETS = [
   './',
   './index.html',
   './manifest.json',
   './firebase-config.js',
-  './cloud-sync.js?v=15',
+  './cloud-sync.js?v=16',
   './icon-192.png',
   './icon-512.png',
 ];

@@ -49,28 +49,38 @@ function openMonthlyDialog(){monthlyForm.reset();$('monthlyId').value='';$('mont
 function togglePaid(i,v){let x=items.find(z=>z.id===i),d=debts.find(z=>z.id===x.debtId);snapshot(v?'Zahlung abgehakt':'Zahlung wieder geöffnet');if(v){if(d&&x.amount>rem(d)+.001)return alert('Betrag übersteigt Restschuld.');if(d){let r={id:id(),date:today(),amount:x.amount,note:x.title,sourceMonthlyId:x.id,created:Date.now()};recs(d).push(r);x.paymentRecordId=r.id}x.paid=true;x.paidDate=today()}else{if(d)d.paymentRecords=recs(d).filter(r=>r.id!==x.paymentRecordId&&r.sourceMonthlyId!==x.id);x.paid=false;x.paidDate='';x.paymentRecordId=''}log(v?'Monatszahlung bezahlt':'Monatszahlung geöffnet',x.title);persist()}function removeMonthly(i){let x=items.find(z=>z.id===i);if(x.paid)return alert('Zahlung zuerst wieder öffnen.');snapshot('Monatszahlung gelöscht');trash.push({id:id(),type:'monthly',data:structuredClone(x),label:x.title,deletedAt:Date.now()});items=items.filter(z=>z.id!==i);log('Monatszahlung gelöscht',x.title);persist()}
 function restoreTrash(i){snapshot('Eintrag wiederhergestellt');let t=trash.find(x=>x.id===i);if(t.type==='debt')debts.push(t.data);else items.push(t.data);trash=trash.filter(x=>x.id!==i);log('Wiederhergestellt',t.label);persist()}function deleteForever(i){trash=trash.filter(x=>x.id!==i);persist()}function emptyTrash(){if(confirm('Papierkorb endgültig leeren?')){trash=[];persist()}}function clearHistory(){if(confirm('Historie löschen?')){hist=[];persist()}}
 function initDrag(){let root=$('monthList'),drag=null,pid=null;root.querySelectorAll('.drag-handle').forEach(h=>h.onpointerdown=e=>{drag=h.closest('[data-id]');pid=e.pointerId;h.setPointerCapture(pid);drag.classList.add('dragging');e.preventDefault()});root.onpointermove=e=>{if(!drag||e.pointerId!==pid)return;e.preventDefault();let t=document.elementFromPoint(e.clientX,e.clientY)?.closest('[data-id]');if(t&&t!==drag&&t.parentElement===drag.parentElement){let r=t.getBoundingClientRect();t.parentElement.insertBefore(drag,e.clientY<r.top+r.height/2?t:t.nextSibling)}};let end=e=>{if(!drag)return;drag.classList.remove('dragging');document.querySelectorAll('#monthList [data-priority]').forEach(g=>[...g.querySelectorAll('[data-id]')].forEach((el,n)=>{let x=items.find(z=>z.id===el.dataset.id);if(x){x.sortOrder=n;x.priority=g.dataset.priority}}));drag=null;pid=null;persist()};root.onpointerup=end;root.onpointercancel=end}
-$('monthSelect').onchange=e=>{selected=e.target.value;monthSelectionWasStored=true;localStorage.setItem(SMK,selected);renderMonth()};$('debtSearch').oninput=renderDebts;$('monthSearch').oninput=renderMonth;document.querySelectorAll('.footer button').forEach(b=>b.onclick=()=>{document.querySelectorAll('section').forEach(s=>s.classList.add('hidden'));$(b.dataset.page).classList.remove('hidden');document.querySelectorAll('.footer button').forEach(x=>x.classList.toggle('active',x===b));render()});let dp;addEventListener('beforeinstallprompt',e=>{e.preventDefault();dp=e;$('installBtn').classList.remove('hidden')});$('installBtn').onclick=async()=>{if(dp){dp.prompt();await dp.userChoice;dp=null;$('installBtn').classList.add('hidden')}};if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js?v=15');render();
+$('monthSelect').onchange=e=>{selected=e.target.value;monthSelectionWasStored=true;localStorage.setItem(SMK,selected);renderMonth()};$('debtSearch').oninput=renderDebts;$('monthSearch').oninput=renderMonth;document.querySelectorAll('.footer button').forEach(b=>b.onclick=()=>{document.querySelectorAll('section').forEach(s=>s.classList.add('hidden'));$(b.dataset.page).classList.remove('hidden');document.querySelectorAll('.footer button').forEach(x=>x.classList.toggle('active',x===b));render()});let dp;addEventListener('beforeinstallprompt',e=>{e.preventDefault();dp=e;$('installBtn').classList.remove('hidden')});$('installBtn').onclick=async()=>{if(dp){dp.prompt();await dp.userChoice;dp=null;$('installBtn').classList.add('hidden')}};if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js?v=16');render();
 
 window.CLOUD_APP_ID='finanzen';
 window.exportCloudState=()=>({debts:structuredClone(debts),items:structuredClone(items),trash:structuredClone(trash),history:structuredClone(hist)});
+function stableCloudId(prefix,entry,index){
+  if(entry?.id)return String(entry.id);
+  const raw=JSON.stringify(entry||{})+'|'+index;
+  let hash=2166136261;
+  for(let i=0;i<raw.length;i++){
+    hash^=raw.charCodeAt(i);
+    hash=Math.imul(hash,16777619);
+  }
+  return `${prefix}-${(hash>>>0).toString(36)}`;
+}
+function normalizeList(source,prefix){
+  return (Array.isArray(source)?source:[]).filter(Boolean).map((entry,index)=>({
+    ...entry,
+    id:stableCloudId(prefix,entry,index),
+  }));
+}
 function mergeById(localList,remoteList){
-  const local=Array.isArray(localList)?localList:[];
-  const remote=Array.isArray(remoteList)?remoteList:[];
   const merged=new Map();
-  local.forEach((entry,index)=>{
-    const key=String(entry?.id||`local-${index}-${JSON.stringify(entry)}`);
-    merged.set(key,entry);
-  });
-  remote.forEach((entry,index)=>{
-    const key=String(entry?.id||`remote-${index}-${JSON.stringify(entry)}`);
+  (Array.isArray(localList)?localList:[]).forEach(entry=>merged.set(String(entry.id),entry));
+  (Array.isArray(remoteList)?remoteList:[]).forEach(entry=>{
+    const key=String(entry.id);
     merged.set(key,{...(merged.get(key)||{}),...entry});
   });
   return [...merged.values()];
 }
 function normalizeMonthlyItems(source){
-  return (Array.isArray(source)?source:[]).filter(Boolean).map((x,index)=>({
+  return normalizeList(source,'monthly').map((x,index)=>({
     ...x,
-    id:x?.id||id(),
     title:String(x?.title||x?.name||x?.bezeichnung||'Unbenannte Zahlung'),
     dueDate:String(x?.dueDate||x?.faelligAm||x?.date||''),
     priority:['urgent','important','normal','later'].includes(x?.priority)?x.priority:'normal',
@@ -82,18 +92,16 @@ window.normalizeCloudState=s=>{
   const monthlyCandidates=[s?.items,s?.monthlyItems,s?.monthlyPayments].filter(Array.isArray);
   const monthlySource=monthlyCandidates.find(list=>list.length)||monthlyCandidates[0]||[];
   return {
-    debts:Array.isArray(s?.debts)?s.debts:[],
+    debts:normalizeList(s?.debts,'debt'),
     items:normalizeMonthlyItems(monthlySource),
-    trash:Array.isArray(s?.trash)?s.trash:[],
-    history:Array.isArray(s?.history)?s.history:[],
+    trash:normalizeList(s?.trash,'trash'),
+    history:normalizeList(s?.history,'history'),
   };
 };
 window.importCloudState=s=>{
   const remote=window.normalizeCloudState(s);
   const vorher=window.normalizeCloudState({debts,items,trash,history:hist});
 
-  // Nicht-destruktiv zusammenführen: Eine leere Cloud-Liste darf vorhandene
-  // Monatszahlungen auf Handy oder PC nicht mehr löschen.
   debts=mergeById(vorher.debts,remote.debts);
   items=normalizeMonthlyItems(mergeById(vorher.items,remote.items));
   trash=mergeById(vorher.trash,remote.trash);
@@ -122,4 +130,4 @@ window.replaceCloudState=s=>{
   localStorage.setItem(HK,JSON.stringify(hist));
   render();
 };
-</script><script src="cloud-sync.js?v=15"></script></body></html>
+</script><script src="cloud-sync.js?v=16"></script></body></html>
