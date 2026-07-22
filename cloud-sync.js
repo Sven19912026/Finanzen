@@ -54,27 +54,39 @@
   }
   function subscribe(){
     if(unsubscribe) unsubscribe();
+    cloudReady=false;
     const ref=db.collection('users').doc(uid).collection('apps').doc(APP_ID);
-    unsubscribe=ref.onSnapshot(async snap=>{
+    unsubscribe=ref.onSnapshot({includeMetadataChanges:true},async snap=>{
+      // Firestore kann beim Start zuerst einen leeren lokalen Cache melden.
+      // Dieser Zwischenstand darf niemals die vorhandenen Serverdaten überschreiben.
+      if(snap.metadata?.fromCache){
+        setStatus('Cloud lädt …','sync');
+        return;
+      }
+
       if(!snap.exists){
         cloudReady=true;
         setStatus('Lokale Daten werden hochgeladen …','sync');
         await pushState();
         return;
       }
+
       const remote=snap.data();
       const local=window.exportCloudState();
       const remoteJson=JSON.stringify(window.normalizeCloudState(remote));
       const localJson=JSON.stringify(window.normalizeCloudState(local));
       if(remoteJson!==localJson){
         applyingRemote=true;
-        window.importCloudState(remote);
-        applyingRemote=false;
+        try{
+          window.importCloudState(remote);
+        }finally{
+          applyingRemote=false;
+        }
       }
       cloudReady=true;
       setStatus('Cloud aktuell','ok');
       await dailyBackup(window.exportCloudState());
-    },e=>{console.error(e);setStatus('Cloud nicht erreichbar','error')});
+    },e=>{console.error(e);cloudReady=false;setStatus('Cloud nicht erreichbar','error')});
   }
   async function login(create){
     msgEl.textContent='';
