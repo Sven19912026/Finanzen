@@ -1,4 +1,4 @@
-const CACHE_NAME = 'schulden-pwa-v16-sync-fix';
+const CACHE_NAME = 'schulden-pwa-v17-prioritaetssummen';
 const ASSETS = [
   './',
   './index.html',
