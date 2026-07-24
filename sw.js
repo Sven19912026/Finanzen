@@ -1,10 +1,10 @@
-const CACHE_NAME = 'schulden-pwa-v17-prioritaetssummen';
+const CACHE_NAME = 'schulden-pwa-v18-erledigt-kontostaende';
 const ASSETS = [
   './',
   './index.html',
   './manifest.json',
   './firebase-config.js',
-  './cloud-sync.js?v=16',
+  './cloud-sync.js?v=17',
   './icon-192.png',
   './icon-512.png',
 ];

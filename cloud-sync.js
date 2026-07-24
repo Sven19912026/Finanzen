@@ -58,6 +58,7 @@
       items: Array.isArray(source?.items) ? source.items : [],
       trash: Array.isArray(source?.trash) ? source.trash : [],
       history: Array.isArray(source?.history) ? source.history : [],
+      balances: source?.balances || { n26: 0, ps3838: 0, cash: 0 },
     };
   }
 
@@ -68,13 +69,14 @@
       items: state.items.length,
       trash: state.trash.length,
       history: state.history.length,
+      balanceTotal: Number(state.balances?.n26 || 0) + Number(state.balances?.ps3838 || 0) + Number(state.balances?.cash || 0),
       total: state.debts.length + state.items.length + state.trash.length + state.history.length,
     };
   }
 
   function hasUsefulData(source){
     const value = counts(source);
-    return value.debts > 0 || value.items > 0 || value.trash > 0 || value.history > 0;
+    return value.debts > 0 || value.items > 0 || value.trash > 0 || value.history > 0 || Math.abs(value.balanceTotal) > 0.001;
   }
 
   function destructiveEmptyReason(localState, remoteState){
@@ -186,7 +188,7 @@
 
       await ref.set({
         ...payload,
-        schemaVersion: 2,
+        schemaVersion: 3,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
         updatedAtClient: new Date().toISOString(),
       }, { merge: false });
@@ -307,7 +309,7 @@
           <div class="backup-entry-main">
             <strong>${escapeHtml(label)}</strong>
             <div class="meta">${escapeHtml(reason)}</div>
-            <div class="backup-counts">${count.debts} Schulden · ${count.items} Monatszahlungen · ${count.history} Verlauf</div>
+            <div class="backup-counts">${count.debts} Schulden · ${count.items} Monatszahlungen · ${count.history} Verlauf · Kontostände ${new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(count.balanceTotal)}</div>
           </div>
           <button class="btn success" onclick="cloudRestoreBackup('${escapeHtml(entry.id)}')">Wiederherstellen</button>
         </div>`;
@@ -350,7 +352,7 @@
       }
 
       const confirmed = window.confirm(
-        `Backup wiederherstellen?\n\n${count.debts} Gesamtschulden\n${count.items} Monatszahlungen\n${count.history} Historieneinträge\n\nDer aktuelle Cloud-Stand wird vorher zusätzlich gesichert.`
+        `Backup wiederherstellen?\n\n${count.debts} Gesamtschulden\n${count.items} Monatszahlungen\n${count.history} Historieneinträge\nKontostände: ${new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(count.balanceTotal)}\n\nDer aktuelle Cloud-Stand wird vorher zusätzlich gesichert.`
       );
       if(!confirmed) return;
 
@@ -376,7 +378,7 @@
 
       await appRef().set({
         ...backupData,
-        schemaVersion: 2,
+        schemaVersion: 3,
         restoredFromBackup: backupId,
         restoredAt: firebase.firestore.FieldValue.serverTimestamp(),
         updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
