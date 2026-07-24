@@ -1,7 +1,7 @@
 {
   "name": "Meine Schulden",
   "short_name": "Schulden",
-  "description": "Finanzübersicht mit Schulden, Monatszahlungen und Kontoständen",
+  "description": "Finanzübersicht mit Schulden, Monatszahlungen, Kontoständen und geplanten Einkäufen",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

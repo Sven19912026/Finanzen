@@ -7,3 +7,5 @@ NEU: MONATSARCHIV
 - Vergangene Monate werden automatisch im Bereich Archiv angezeigt.
 - Pro Monat: bezahlte Rechnungen, bezahlte Summe, offen gebliebene Zahlungen, offene Summe und Gesamtsumme.
 - Offene Altfälle können im Archiv später als bezahlt markiert werden.
+
+Neu: Einklappbare geplante Einkäufe auf dem Dashboard, getrennt nach Wichtig und Normal, mit Summen und Erledigt-Status.

@@ -1,10 +1,10 @@
-const CACHE_NAME = 'schulden-pwa-v19-monatsarchiv';
+const CACHE_NAME = 'schulden-pwa-v20-einkaeufe';
 const ASSETS = [
   './',
   './index.html',
   './manifest.json',
   './firebase-config.js',
-  './cloud-sync.js?v=19',
+  './cloud-sync.js?v=20',
   './icon-192.png',
   './icon-512.png',
 ];

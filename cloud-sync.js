@@ -59,6 +59,7 @@
       trash: Array.isArray(source?.trash) ? source.trash : [],
       history: Array.isArray(source?.history) ? source.history : [],
       balances: source?.balances || { n26: 0, ps3838: 0, cash: 0 },
+      purchases: Array.isArray(source?.purchases) ? source.purchases : [],
     };
   }
 
@@ -70,13 +71,14 @@
       trash: state.trash.length,
       history: state.history.length,
       balanceTotal: Number(state.balances?.n26 || 0) + Number(state.balances?.ps3838 || 0) + Number(state.balances?.cash || 0),
-      total: state.debts.length + state.items.length + state.trash.length + state.history.length,
+      purchases: state.purchases.length,
+      total: state.debts.length + state.items.length + state.trash.length + state.history.length + state.purchases.length,
     };
   }
 
   function hasUsefulData(source){
     const value = counts(source);
-    return value.debts > 0 || value.items > 0 || value.trash > 0 || value.history > 0 || Math.abs(value.balanceTotal) > 0.001;
+    return value.debts > 0 || value.items > 0 || value.trash > 0 || value.history > 0 || value.purchases > 0 || Math.abs(value.balanceTotal) > 0.001;
   }
 
   function destructiveEmptyReason(localState, remoteState){
@@ -86,6 +88,7 @@
     if(remote.debts > 0 && local.debts === 0) reasons.push(`${remote.debts} Gesamtschulden`);
     if(remote.items > 0 && local.items === 0) reasons.push(`${remote.items} Monatszahlungen`);
     if(remote.history > 0 && local.history === 0) reasons.push(`${remote.history} Historieneinträge`);
+    if(remote.purchases > 0 && local.purchases === 0) reasons.push(`${remote.purchases} geplante Einkäufe`);
     return reasons.length ? reasons.join(', ') : '';
   }
 
@@ -188,7 +191,7 @@
 
       await ref.set({
         ...payload,
-        schemaVersion: 3,
+        schemaVersion: 4,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
         updatedAtClient: new Date().toISOString(),
       }, { merge: false });
@@ -309,7 +312,7 @@
           <div class="backup-entry-main">
             <strong>${escapeHtml(label)}</strong>
             <div class="meta">${escapeHtml(reason)}</div>
-            <div class="backup-counts">${count.debts} Schulden · ${count.items} Monatszahlungen · ${count.history} Verlauf · Kontostände ${new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(count.balanceTotal)}</div>
+            <div class="backup-counts">${count.debts} Schulden · ${count.items} Monatszahlungen · ${count.purchases} Einkäufe · ${count.history} Verlauf · Kontostände ${new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(count.balanceTotal)}</div>
           </div>
           <button class="btn success" onclick="cloudRestoreBackup('${escapeHtml(entry.id)}')">Wiederherstellen</button>
         </div>`;
@@ -352,7 +355,7 @@
       }
 
       const confirmed = window.confirm(
-        `Backup wiederherstellen?\n\n${count.debts} Gesamtschulden\n${count.items} Monatszahlungen\n${count.history} Historieneinträge\nKontostände: ${new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(count.balanceTotal)}\n\nDer aktuelle Cloud-Stand wird vorher zusätzlich gesichert.`
+        `Backup wiederherstellen?\n\n${count.debts} Gesamtschulden\n${count.items} Monatszahlungen\n${count.purchases} geplante Einkäufe\n${count.history} Historieneinträge\nKontostände: ${new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(count.balanceTotal)}\n\nDer aktuelle Cloud-Stand wird vorher zusätzlich gesichert.`
       );
       if(!confirmed) return;
 
@@ -378,7 +381,7 @@
 
       await appRef().set({
         ...backupData,
-        schemaVersion: 3,
+        schemaVersion: 4,
         restoredFromBackup: backupId,
         restoredAt: firebase.firestore.FieldValue.serverTimestamp(),
         updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -389,7 +392,7 @@
       restoringBackup = false;
       setStatus('Backup wiederhergestellt', 'ok');
       if(backupDialog.open) backupDialog.close();
-      window.alert(`Backup erfolgreich wiederhergestellt: ${count.debts} Schulden und ${count.items} Monatszahlungen.`);
+      window.alert(`Backup erfolgreich wiederhergestellt: ${count.debts} Schulden, ${count.items} Monatszahlungen und ${count.purchases} geplante Einkäufe.`);
     }catch(error){
       console.error(error);
       restoringBackup = false;
